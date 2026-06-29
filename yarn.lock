@@ -5266,10 +5266,10 @@ ws@^8.17.0:
   resolved "https://registry.npmjs.org/ws/-/ws-8.18.3.tgz"
   integrity sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==
 
-x-client-transaction-id@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/x-client-transaction-id/-/x-client-transaction-id-0.2.0.tgz#5cff4439bdbcf07abb6d0806f3d40c9bd078a122"
-  integrity sha512-E2EgeyQpeOLOk4z7OS+IDpj7xwiKeUQHly6L1dTG2YYCEGtR6JLa6Ft5ra3pB7bY5esPb6Pqokt1DQeRm73i5g==
+x-client-transaction-id@^0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/x-client-transaction-id/-/x-client-transaction-id-0.3.1.tgz#7815fea92191552d96d3d270de1a23e69d1b0078"
+  integrity sha512-fD9YtDswTL3VyG/z7FbZUfMu5CUsvGmKk33fM3b9eOXe0Wnmj8W55UKLPA5Z/cuq6WrWTxXQhLcV3GGCD6mKaQ==
   dependencies:
     linkedom "^0.18.9"
 
