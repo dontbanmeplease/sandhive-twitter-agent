@@ -29,8 +29,9 @@ async function parseHTML(html: string): Promise<Window & typeof globalThis> {
   }
 }
 
-// Copied from https://github.com/Lqm1/x-client-transaction-id/blob/main/utils.ts with minor tweaks to support us passing a custom fetch function
-async function handleXMigration(fetchFn: typeof fetch): Promise<Document> {
+// Adapted from https://github.com/Lqm1/x-client-transaction-id/blob/main/utils.ts
+// to support the scraper's custom (and potentially proxied) fetch function.
+export async function fetchXDocument(fetchFn: typeof fetch): Promise<Document> {
   // Set headers to mimic a browser request
   const headers = {
     accept:
@@ -52,93 +53,20 @@ async function handleXMigration(fetchFn: typeof fetch): Promise<Document> {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
   };
 
-  // Fetch X.com homepage
-  const response = await fetchFn('https://x.com', {
+  // The bare homepage now serves a separate logged-out app which does not
+  // contain the responsive-web runtime or its ondemand chunk map. The /home
+  // route still serves the app shell required by x-client-transaction-id.
+  const response = await fetchFn('https://x.com/home', {
     headers,
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch X homepage: ${response.statusText}`);
+    throw new Error(`Failed to fetch X home page: ${response.statusText}`);
   }
 
   const htmlText = await response.text();
 
-  // Parse HTML using linkedom
-  let dom = await parseHTML(htmlText);
-  let document = dom.window.document;
-
-  // Check for migration redirection links
-  const migrationRedirectionRegex = new RegExp(
-    '(http(?:s)?://(?:www\\.)?(twitter|x){1}\\.com(/x)?/migrate([/?])?tok=[a-zA-Z0-9%\\-_]+)+',
-    'i',
-  );
-
-  const metaRefresh = document.querySelector("meta[http-equiv='refresh']");
-  const metaContent = metaRefresh
-    ? metaRefresh.getAttribute('content') || ''
-    : '';
-
-  const migrationRedirectionUrl =
-    migrationRedirectionRegex.exec(metaContent) ||
-    migrationRedirectionRegex.exec(htmlText);
-
-  if (migrationRedirectionUrl) {
-    // Follow redirection URL
-    const redirectResponse = await fetch(migrationRedirectionUrl[0]);
-
-    if (!redirectResponse.ok) {
-      throw new Error(
-        `Failed to follow migration redirection: ${redirectResponse.statusText}`,
-      );
-    }
-
-    const redirectHtml = await redirectResponse.text();
-    dom = await parseHTML(redirectHtml);
-    document = dom.window.document;
-  }
-
-  // Handle migration form if present
-  const migrationForm =
-    document.querySelector("form[name='f']") ||
-    document.querySelector("form[action='https://x.com/x/migrate']");
-
-  if (migrationForm) {
-    const url =
-      migrationForm.getAttribute('action') || 'https://x.com/x/migrate';
-    const method = migrationForm.getAttribute('method') || 'POST';
-
-    // Collect form input fields
-    const requestPayload = new FormData();
-
-    const inputFields = migrationForm.querySelectorAll('input');
-    for (const element of Array.from(inputFields)) {
-      const name = element.getAttribute('name');
-      const value = element.getAttribute('value');
-      if (name && value) {
-        requestPayload.append(name, value);
-      }
-    }
-
-    // Submit form using POST request
-    const formResponse = await fetch(url, {
-      method: method,
-      body: requestPayload,
-      headers,
-    });
-
-    if (!formResponse.ok) {
-      throw new Error(
-        `Failed to submit migration form: ${formResponse.statusText}`,
-      );
-    }
-
-    const formHtml = await formResponse.text();
-    dom = await parseHTML(formHtml);
-    document = dom.window.document;
-  }
-
-  // Return final DOM document
-  return document;
+  return (await parseHTML(htmlText)).window.document;
 }
 
 let ClientTransaction:
@@ -166,7 +94,7 @@ export async function generateTransactionId(
   const path = parsedUrl.pathname;
 
   log(`Generating transaction ID for ${method} ${path}`);
-  const document = await handleXMigration(fetchFn);
+  const document = await fetchXDocument(fetchFn);
   const ClientTransactionClass = await clientTransaction();
   const transaction = await ClientTransactionClass.create(document);
   const transactionId = await transaction.generateTransactionId(method, path);
